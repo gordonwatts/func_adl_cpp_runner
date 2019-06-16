@@ -14,4 +14,11 @@ docker run --rm -d --hostname as-rabbit --name as-rabbit -p 15672:15672 rabbitmq
 
 # First go at getting the dataset downloader up and running.
 # rabbit find_did -> parse_cpp
-docker run -v H:\OneDrive\.ssh\rucio-config\usercert:/root/rawcert -v G:\GRIDDocker:/data --name=desktop-rucio --rm -it --entrypoint /bin/bash  gordonwatts/desktop-rucio:alpha-0.1.3 startup_rabbit.sh gwatts mass2000 atlas file:///data 172.17.0.2
+docker run --rm -it -v H:\OneDrive\.ssh\rucio-config\usercert:/root/rawcert -v G:\GRIDDocker:/data --name=desktop-rucio --rm -it --entrypoint /bin/bash  gordonwatts/desktop-rucio:alpha-0.1.3 startup_rabbit.sh gwatts mass2000 atlas file:///data 172.17.0.2
+
+# Next, build the C++ code that is going to do our work
+# rabbit parse_cpp -> run_cpp
+docker run -it --rm -v G:\testing\cpp_cache:/cache  gordonwatts/func_adl:v0.0.1 python translate_ast_to_cpp_rabbit.py 172.17.0.2
+
+# Finally, the runner that will deposit the analysis in an output directory (I know, they will all overwrite, but this is good for now).
+docker run -it --rm  -v G:\testing\cpp_cache:/cache -v G:\GRIDDocker:/data -v G:\testing\results:/results  gordonwatts/func_adl_cpp_runner:v0.0.1 /bin/bash -c "source /home/atlas/release_setup.sh; python cmd_runner_rabbit.py 172.17.0.2"

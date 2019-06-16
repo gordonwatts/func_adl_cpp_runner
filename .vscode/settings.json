@@ -1,0 +1,6 @@
+{
+    "docker.imageBuildContextPath": ".",
+    "cSpell.words": [
+        "chdir"
+    ],
+}

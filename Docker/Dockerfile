@@ -2,7 +2,7 @@
 
 FROM atlas/analysisbase:21.2.62 
 
-WORKDIR /usr/src/app
+WORKDIR /home/atlas
 COPY requirements.txt .
 RUN source /home/atlas/release_setup.sh; \
     pip install --user -r requirements.txt
