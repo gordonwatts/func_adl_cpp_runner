@@ -2,10 +2,6 @@
 # This is for debugging and testing. Kubernetes is probably the right place for this.
 # And at some point there will be a helm chart that will properly run all this.
 
-# These have to be determeind by hand when you start up your docker images for mongo and rabbit.
-$rabbitNode = "172.17.0.2"
-$mongoNode = "172.17.0.3"
-
 # How to insert an ast into the queue by hand.
 #  == "0" is the ast number (only 0 is supported so far)
 #  == "172.17.0.2" is the ip address of your docker container that is running rabbit. Use
