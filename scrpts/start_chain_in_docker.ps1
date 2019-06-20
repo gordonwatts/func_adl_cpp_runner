@@ -88,4 +88,10 @@ if ($running.Count -eq 1) {
     Write-Host 'Started as-xaod-runner'
     docker run -d --name as-xaod-runner -v cpp_cache:/cache -v G:\GRIDDocker:/data -v G:\testing\results:/results  gordonwatts/func_adl_cpp_runner:v0.0.1 /bin/bash -c "source /home/atlas/release_setup.sh; python cmd_runner_rabbit.py $rabbitNode $xrootdNode $rabbitUSER $rabbitPASS"
 }
+
+# Finally, the web server that will run everything.
+$running = $(docker ps -f name=as-web)
+if ($running.Count -eq 1) {
+    Write-Host 'Starting as-web'
+    docker run -d --name as-web -e RABBIT_USER=$rabbitUSER -e RABBIT_PASS=$rabbitPASS -e RABBIT_NODE=$rabbitNode -p 8000:8000 gordonwatts/func_adl_request_broker:v0.0.1 hug -f query_web.py
 }
