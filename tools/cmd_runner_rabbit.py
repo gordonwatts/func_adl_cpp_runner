@@ -41,11 +41,14 @@ def process_message(xrootd_node, ch, method, properties, body):
     # This is as far as we go.
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
-def listen_to_queue(rabbit_node, xrootd_node):
+def listen_to_queue(rabbit_node, xrootd_node, rabbit_user, rabbit_pass):
     'Get the various things downloaded and running'
 
     # Connect and setup the queues we will listen to and push once we've done.
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbit_node))
+    if rabbit_pass in os.environ:
+        rabbit_pass = os.environ[rabbit_pass]
+    credentials = pika.PlainCredentials(rabbit_user, rabbit_pass)
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbit_node, credentials=credentials))
     channel = connection.channel()
 
     # We pull tasks off this guy.
@@ -62,8 +65,8 @@ def listen_to_queue(rabbit_node, xrootd_node):
     channel.start_consuming()
 
 if __name__ == '__main__':
-    bad_args = len(sys.argv) != 3
+    bad_args = len(sys.argv) != 5
     if bad_args:
-        print "Usage: python cmd_runner_rabbit.py <rabbit-mq-node-address> <xrootd-results_node>"
+        print "Usage: python cmd_runner_rabbit.py <rabbit-mq-node-address> <xrootd-results_node> <rabbit-username> <rabbit-password>"
     else:
-        listen_to_queue (sys.argv[1], sys.argv[2])
+        listen_to_queue (sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
