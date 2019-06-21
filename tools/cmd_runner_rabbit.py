@@ -36,7 +36,7 @@ def process_message(xrootd_node, ch, method, properties, body):
     ch.basic_publish(exchange='', routing_key='status_change_state', body=json.dumps({'hash':hash, 'phase':'done'}))
 
     # And send that done file on too.
-    ch.basic_publish(exchange='', routing_key='status_add_file', body=json.dumps({'hash':hash, 'file':output_file}))
+    ch.basic_publish(exchange='', routing_key='status_add_file', body=json.dumps({'hash':hash, 'file':output_file, 'treename':r['treename']}))
 
     # This is as far as we go.
     ch.basic_ack(delivery_tag=method.delivery_tag)
