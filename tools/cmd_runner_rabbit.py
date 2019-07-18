@@ -4,6 +4,7 @@ import pika
 import json
 import os
 import shutil
+import logging
 
 # WARNING:
 # 1) This expects /cache to already be defined.
@@ -25,7 +26,7 @@ def process_message(xrootd_node, ch, method, properties, body):
     input_files = r['files']
     output_file = r['output_file']
     xrootd_file = "root://" + xrootd_node + "//" + output_file
-    print xrootd_file
+    logging.info('We are looking at an xrootd file: ' + xrootd_file)
 
     with open('filelist.txt', 'w') as f:
         for f_name in input_files:
@@ -51,6 +52,9 @@ def listen_to_queue(rabbit_node, xrootd_node, rabbit_user, rabbit_pass):
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbit_node, credentials=credentials))
     channel = connection.channel()
 
+    # We run pretty slowly, so make sure this guy doesn't keep too many.
+    channel.basic_qos(prefetch_count=1)
+
     # We pull tasks off this guy.
     channel.queue_declare(queue='run_cpp')
     # Let them know about progress
@@ -65,6 +69,7 @@ def listen_to_queue(rabbit_node, xrootd_node, rabbit_user, rabbit_pass):
     channel.start_consuming()
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     bad_args = len(sys.argv) != 5
     if bad_args:
         print "Usage: python cmd_runner_rabbit.py <rabbit-mq-node-address> <xrootd-results_node> <rabbit-username> <rabbit-password>"
