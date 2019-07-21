@@ -5,12 +5,13 @@ import json
 import os
 import shutil
 import logging
+import threading
 
 # WARNING:
 # 1) This expects /cache to already be defined.
 # 2) This needs to run inside an ATLAS container. Which means python 2.
 
-def process_message(xrootd_node, ch, method, properties, body):
+def process_message(xrootd_node, ch, method, properties, body, connection):
     'Process each message and run the C++ for it.'
 
     # Make sure nothing from the previous job is sitting there waiting.
@@ -32,15 +33,24 @@ def process_message(xrootd_node, ch, method, properties, body):
         for f_name in input_files:
             f.write(f_name + '\n')
     
-    ch.basic_publish(exchange='', routing_key='status_change_state', body=json.dumps({'hash':hash, 'phase':'running'}))
+    connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='status_change_state', body=json.dumps({'hash':hash, 'phase':'running'})))
     os.system(os.path.join('/cache', code_hash, main_script) + " " + xrootd_file)
-    ch.basic_publish(exchange='', routing_key='status_change_state', body=json.dumps({'hash':hash, 'phase':'done'}))
+    connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='status_change_state', body=json.dumps({'hash':hash, 'phase':'done'})))
 
     # And send that done file on too.
-    ch.basic_publish(exchange='', routing_key='status_add_file', body=json.dumps({'hash':hash, 'file':output_file, 'treename':r['treename']}))
+    connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='status_add_file', body=json.dumps({'hash':hash, 'file':output_file, 'treename':r['treename']})))
 
     # This is as far as we go.
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+    connection.add_callback_threadsafe(lambda: ch.basic_ack(delivery_tag=method.delivery_tag))
+
+def start_message_processing_thread(xrootd_node, ch, method, properties, body, connection):
+    ''' Starts a message processing in a new thread.
+    This is so the msg recv loop doesn't need to remain busy.
+    '''
+    logging.debug('Firing off a thread processing.')
+    t = threading.Thread(target=process_message, args=(xrootd_node, ch, method, properties, body, connection))
+    t.start()
+    logging.debug('done loading the thread up.')
 
 def listen_to_queue(rabbit_node, xrootd_node, rabbit_user, rabbit_pass):
     'Get the various things downloaded and running'
@@ -63,7 +73,7 @@ def listen_to_queue(rabbit_node, xrootd_node, rabbit_user, rabbit_pass):
     channel.queue_declare(queue='status_add_file')
 
     # Listen for work to show up.
-    channel.basic_consume(queue='run_cpp', on_message_callback=lambda ch, method, properties, body:process_message(xrootd_node, ch, method, properties, body), auto_ack=False)
+    channel.basic_consume(queue='run_cpp', on_message_callback=lambda ch, method, properties, body:start_message_processing_thread(xrootd_node, ch, method, properties, body, connection), auto_ack=False)
 
     # We are setup. Off we go. We'll never come back.
     channel.start_consuming()
