@@ -32,13 +32,23 @@ def process_message(xrootd_node, ch, method, properties, body, connection):
     with open('filelist.txt', 'w') as f:
         for f_name in input_files:
             f.write(f_name + '\n')
-    
-    connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='status_change_state', body=json.dumps({'hash':hash, 'phase':'running'})))
-    os.system(os.path.join('/cache', code_hash, main_script) + " " + xrootd_file)
-    connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='status_change_state', body=json.dumps({'hash':hash, 'phase':'done'})))
+    log_file = '/tmp/' + code_hash + '.log'
 
-    # And send that done file on too.
-    connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='status_add_file', body=json.dumps({'hash':hash, 'file':output_file, 'treename':r['treename']})))
+    connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='status_change_state', body=json.dumps({'hash':hash, 'phase':'running'})))
+    rtn_code = os.system(os.path.join('set -o pipefail; /cache', code_hash, main_script) + " " + xrootd_file + ' 2>&1 | tee ' + log_file)
+    logging.info('Return code from run: ' + str(rtn_code))
+
+    if rtn_code != 0:
+        # Report the error and the log file.
+        connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='status_change_state', body=json.dumps({'hash':hash, 'phase':'crashed'})))
+        with open(log_file) as f:
+            content = f.read().splitlines()
+        connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='crashed_request',
+            body=json.dumps({'hash':hash, 'message':'while building and running xAOD', 'log': content})))
+    else:
+        # Update the status, and send the file on for use by the person that requested it.
+        connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='status_change_state', body=json.dumps({'hash':hash, 'phase':'done'})))
+        connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='status_add_file', body=json.dumps({'hash':hash, 'file':output_file, 'treename':r['treename']})))
 
     # This is as far as we go.
     connection.add_callback_threadsafe(lambda: ch.basic_ack(delivery_tag=method.delivery_tag))
@@ -71,6 +81,8 @@ def listen_to_queue(rabbit_node, xrootd_node, rabbit_user, rabbit_pass):
     channel.queue_declare(queue='status_change_state')
     # Add files as they complete
     channel.queue_declare(queue='status_add_file')
+    # Record a crash
+    channel.queue_declare(queue='crashed_request')
 
     # Listen for work to show up.
     channel.basic_consume(queue='run_cpp', on_message_callback=lambda ch, method, properties, body:start_message_processing_thread(xrootd_node, ch, method, properties, body, connection), auto_ack=False)
