@@ -6,10 +6,8 @@ import os
 import shutil
 import logging
 import threading
-
-# WARNING:
-# 1) This expects /cache to already be defined.
-# 2) This needs to run inside an ATLAS container. Which means python 2.
+import base64
+import zipfile
 
 def process_message(xrootd_node, ch, method, properties, body, connection):
     'Process each message and run the C++ for it.'
@@ -28,14 +26,30 @@ def process_message(xrootd_node, ch, method, properties, body, connection):
     output_file = r['output_file']
     xrootd_file = "root://" + xrootd_node + "//" + output_file
     logging.info('We are looking at an xrootd file: ' + xrootd_file)
+    source_files = r['file_data']
 
+    # Unpack the source files we are going to run against
+    zip_filename = '/tmp/' + code_hash + '.zip'
+    with open(zip_filename, 'wb') as zip_data:
+        zip_data.write(base64.b64decode(source_files))
+        zip_data.close()
+        logging.info('Length of binary data we got: ' + str(len(source_files)))
+
+    zip_output = '/tmp/' + code_hash + '_files'
+    if not os.path.exists(zip_output):
+        os.mkdir(zip_output)
+    with zipfile.ZipFile(zip_filename, 'r') as zip_ref:
+        zip_ref.extractall(zip_output)
+    
+    # Write the file list that we are to process
     with open('filelist.txt', 'w') as f:
         for f_name in input_files:
             f.write(f_name + '\n')
     log_file = '/tmp/' + code_hash + '.log'
 
+    # Now run the thing.
     connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='status_change_state', body=json.dumps({'hash':hash, 'phase':'running'})))
-    rtn_code = os.system(os.path.join('set -o pipefail; /cache', code_hash, main_script) + " " + xrootd_file + ' 2>&1 | tee ' + log_file)
+    rtn_code = os.system('set -o pipefail; sh ' + zip_output + '/' + main_script + " " + xrootd_file + ' 2>&1 | tee ' + log_file)
     logging.info('Return code from run: ' + str(rtn_code))
 
     if rtn_code != 0:
