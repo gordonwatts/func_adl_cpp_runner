@@ -3,8 +3,21 @@
     "cSpell.words": [
         "chdir",
         "mkdir",
+        "mkdtemp",
+        "noqa",
+        "pytest",
         "rmtree",
+        "runit",
         "shutil",
         "xrootd"
     ],
+    "python.linting.flake8Enabled": true,
+    "python.testing.pytestEnabled": true,
+    "python.testing.autoTestDiscoverOnSaveEnabled": false,
+    "python.linting.flake8Args": [
+        "--ignore=E501"
+    ],
+    "python.pythonPath": "C:\\Users\\gordo\\Anaconda3\\envs\\python2\\python.exe",
+    "python.linting.pylintEnabled": false,
+    "python.linting.enabled": true,
 }
