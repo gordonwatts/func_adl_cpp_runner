@@ -279,5 +279,8 @@ def test_file_access_error(rabbit_info, request_body, returns_failure_file_acces
     process_message("dummynode.node.edu", rabbit_channel, method, None, request_body, rabbit_connection)
 
     # Now check that everything we wanted to happen, happened.
-    rabbit_channel.basic_ack.assert_not_called()
-    rabbit_channel.basic_reject.assert_called_once()
+    # TODO: This is actually a fatal error it turns out.
+    rabbit_channel.basic_ack.assert_called_once()
+    rabbit_channel.basic_reject.assert_not_called()
+    # rabbit_channel.basic_ack.assert_not_called()
+    # rabbit_channel.basic_reject.assert_called_once()

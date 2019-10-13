@@ -18,8 +18,9 @@ def check_log_file_for_fatal_errors(lines):
 
     # Look for a file access error. If that is found, then assume that is a good
     # file and we just are having a network problem. So re-submit.
-    if any(l for l in lines if "[3011] Unable to open" in l):
-        return False
+    # todo: this is a fatal error for now
+    # if any(l for l in lines if "[3011] Unable to open" in l):
+    #     return False
 
     # If we are here, we don't know what caused this. Assume it is really bad and return true.
     return True
