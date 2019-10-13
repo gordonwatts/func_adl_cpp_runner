@@ -55,13 +55,13 @@ def process_message(xrootd_node, ch, method, properties, body, connection):
     source_files = r['file_data']
 
     # Unpack the source files we are going to run against
-    zip_filename = os.path.join(tempfile.tempdir, code_hash + '.zip')
+    zip_filename = os.path.join(tempfile.gettempdir(), code_hash + '.zip')
     with open(zip_filename, 'wb') as zip_data:
         zip_data.write(base64.b64decode(source_files))
         zip_data.close()
         logging.info('Length of binary data we got: ' + str(len(source_files)))
 
-    zip_output = os.path.join(tempfile.tempdir, code_hash + '_files')
+    zip_output = os.path.join(tempfile.gettempdir(), code_hash + '_files')
     if not os.path.exists(zip_output):
         os.mkdir(zip_output)
     with zipfile.ZipFile(zip_filename, 'r') as zip_ref:
@@ -71,7 +71,7 @@ def process_message(xrootd_node, ch, method, properties, body, connection):
     with open('filelist.txt', 'w') as f:
         for f_name in input_files:
             f.write(f_name + '\n')
-    log_file = os.path.join(tempfile.tempdir, code_hash + '.log')
+    log_file = os.path.join(tempfile.gettempdir(), code_hash + '.log')
 
     # Now run the thing.
     connection.add_callback_threadsafe(lambda: ch.basic_publish(exchange='', routing_key='status_change_state', body=json.dumps({'hash': hash, 'phase': 'running'})))
