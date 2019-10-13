@@ -15,7 +15,14 @@ def check_log_file_for_fatal_errors(lines):
     '''Return true if the log file contains a fatal error that means we should
     not be re-running this. Falls otherwise.
     '''
-    return False
+
+    # Look for a file access error. If that is found, then assume that is a good
+    # file and we just are having a network problem. So re-submit.
+    if any(l for l in lines if "[3011] Unable to open" in l):
+        return False
+
+    # If we are here, we don't know what caused this. Assume it is really bad and return true.
+    return True
 
 
 def process_message(xrootd_node, ch, method, properties, body, connection):

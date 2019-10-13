@@ -1,14 +1,24 @@
 {
     "docker.imageBuildContextPath": ".",
     "cSpell.words": [
+        "DAOD",
+        "EXOT",
+        "Lphi",
+        "Wmaybe",
+        "binutils",
         "chdir",
+        "eljob",
+        "initialised",
         "mkdir",
         "mkdtemp",
         "noqa",
+        "pthread",
         "pytest",
         "rmtree",
+        "rucio",
         "runit",
         "shutil",
+        "xcache",
         "xrootd"
     ],
     "python.linting.flake8Enabled": true,
@@ -20,4 +30,17 @@
     "python.pythonPath": "C:\\Users\\gordo\\Anaconda3\\envs\\python2\\python.exe",
     "python.linting.pylintEnabled": false,
     "python.linting.enabled": true,
+    "python.linting.ignorePatterns": [
+        ".vscode/*.py",
+        "**/site-packages/**/*.py",
+        "**/Anaconda3/envs/**"
+    ],
+    "cSpell.ignorePaths": [
+        "**/package-lock.json",
+        "**/node_modules/**",
+        "**/vscode-extension/**",
+        "**/.git/objects/**",
+        ".vscode",
+        "**/Anaconda3/**"
+    ],
 }
